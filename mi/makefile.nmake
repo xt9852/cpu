@@ -25,7 +25,7 @@ TMP                 = .\tmp                 # 临时文件目录
 FILE_RC             =                       # 资源描述文件
 FILE_RES            =                       # 资源文件
                                             # 编译参数,自定义宏/D"macro"
-CFLAGS              = /I".\\BasicExcel"\
+CFLAGS              = /Os /I".\\BasicExcel"\
                       /D"_CRT_SECURE_NO_WARNINGS"
                                             
 LFLAGS              =                       # 链接参数,排除默认库/NODEFAULTLIB:"LIBCMT"

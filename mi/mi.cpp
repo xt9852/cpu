@@ -5,7 +5,7 @@
 #include <BasicExcel.hpp>
 using namespace YExcel;
 
-// å¯„å­˜å™¨ID,ä¸REG_NAMEå¯¹åº”
+// ¼Ä´æÆ÷ID,ÓëREG_NAME¶ÔÓ¦
 enum REG_ID {
     REG_READ,
     REG_WRITE,
@@ -30,12 +30,14 @@ enum REG_ID {
     ALU_FF,
     ALU_A_ADD_ADD,
     ALU_A_SUB_SUB,
+    ALU_A_ADD_A,
+    ALU_A_ADD_D,
     ALU_A_SUB_D,
     ADDR_SEL,
     REG_COUNT
     };
 
-// å¯„å­˜å™¨åç§°,ä¸REG_IDå¯¹åº”
+// ¼Ä´æÆ÷Ãû³Æ,ÓëREG_ID¶ÔÓ¦
 const char *REG_NAME[] = {
     "READ",
     "WRITE",
@@ -60,12 +62,14 @@ const char *REG_NAME[] = {
     "ALU(FF)",
     "ALU(A++)",
     "ALU(A--)",
+    "ALU(A+A)",
+    "ALU(A+D)",
     "ALU(A-D)",
     "ADDR-SEL"
     };
 
-#pragma pack(push)  // å°†å½“å‰packè®¾ç½®å‹æ ˆä¿å­˜
-#pragma pack(1)     // å¿…é¡»åœ¨ç»“æ„ä½“å®šä¹‰ä¹‹å‰ä½¿ç”¨
+#pragma pack(push)  // ½«µ±Ç°packÉèÖÃÑ¹Õ»±£´æ
+#pragma pack(1)     // ±ØĞëÔÚ½á¹¹Ìå¶¨ÒåÖ®Ç°Ê¹ÓÃ
 
 typedef struct _mi
 {
@@ -152,7 +156,7 @@ typedef union _mi_bin
 
 }mi_bin_t, *p_mi_bin;
 
-#pragma pack(pop)   // æ¢å¤å…ˆå‰çš„packè®¾ç½®
+#pragma pack(pop)   // »Ö¸´ÏÈÇ°µÄpackÉèÖÃ
 
 
 static mi_bin_t       s_mi                      = { 0 };
@@ -160,12 +164,12 @@ static unsigned char  s_bin[BIN_COUNT][BIN_LEN] = { 0 };
 static int            s_last_addr               = -1;
 
 /**
- * \brief      è½¬æˆå¤šå­—èŠ‚å­—ç¬¦ä¸²
- * \param[in]  const wchar_t   *src     æºä¸²
- * \param[in]  int              len     æºä¸²é•¿åº¦
- * \param[in]  char            *des     ç›®æ ‡ä¸²
- * \param[in]  int              size    ç›®æ ‡ä¸²ç¼“å­˜å¤§å°
- * \return     void                     æ— 
+ * \brief      ×ª³É¶à×Ö½Ú×Ö·û´®
+ * \param[in]  const wchar_t   *src     Ô´´®
+ * \param[in]  int              len     Ô´´®³¤¶È
+ * \param[in]  char            *des     Ä¿±ê´®
+ * \param[in]  int              size    Ä¿±ê´®»º´æ´óĞ¡
+ * \return     void                     ÎŞ
  */
 void to_string(const wchar_t *src, int len, char *des, int size)
 {
@@ -174,11 +178,11 @@ void to_string(const wchar_t *src, int len, char *des, int size)
 }
 
 /**
- * \brief      åˆ†å‰²å­—ç¬¦ä¸²
- * \param[in]  char         *str    æºå­—ç¬¦ä¸²
- * \param[in]  const char   *sep    åˆ†å‰²ç¬¦
- * \param[out] char         *ptr[]  åˆ†å‰²åçš„æŒ‡é’ˆ
- * \return     int 0-æˆåŠŸï¼Œå…¶å®ƒå¤±è´¥
+ * \brief      ·Ö¸î×Ö·û´®
+ * \param[in]  char         *str    Ô´×Ö·û´®
+ * \param[in]  const char   *sep    ·Ö¸î·û
+ * \param[out] char         *ptr[]  ·Ö¸îºóµÄÖ¸Õë
+ * \return     int 0-³É¹¦£¬ÆäËüÊ§°Ü
  */
 int split_string(char *str, const char *sep, char *ptr[])
 {
@@ -201,19 +205,19 @@ int split_string(char *str, const char *sep, char *ptr[])
 }
 
 /**
- * \brief      æ¸…ç©ºå¾®æŒ‡ä»¤æ•°æ®
- * \param[in]  unsigned short next ä¸‹ä¸€æ¡å¾®æŒ‡ä»¤åœ°å€
- * \return     æ— 
+ * \brief      Çå¿ÕÎ¢Ö¸ÁîÊı¾İ
+ * \param[in]  unsigned short next ÏÂÒ»ÌõÎ¢Ö¸ÁîµØÖ·
+ * \return     ÎŞ
  */
 void clean_micro_inst_data(unsigned short next)
 {
-    // æ¸…ç©ºmi
+    // Çå¿Õmi
     memset(&s_mi, 0, sizeof(s_mi));
 
-    // ä¸‹ä¸€æ¡å¾®æŒ‡ä»¤åœ°å€
+    // ÏÂÒ»ÌõÎ¢Ö¸ÁîµØÖ·
     s_mi.mi.next = next;
 
-    // è®¾ç½®é»˜è®¤å€¼
+    // ÉèÖÃÄ¬ÈÏÖµ
     s_mi.mi.ri_oe     = 1;
     s_mi.mi.rf_a      = 1;
     s_mi.mi.rf_d      = 1;
@@ -244,9 +248,9 @@ void clean_micro_inst_data(unsigned short next)
 }
 
 /**
- * \brief      å†™å…¥binæ•°æ®
- * \param[in]  unsigned short addr å¾®æŒ‡ä»¤åœ°å€
- * \return     void                æ— 
+ * \brief      Ğ´ÈëbinÊı¾İ
+ * \param[in]  unsigned short addr Î¢Ö¸ÁîµØÖ·
+ * \return     void                ÎŞ
  */
 void write_micro_inst_buff(unsigned short addr)
 {
@@ -267,8 +271,8 @@ void write_micro_inst_buff(unsigned short addr)
 }
 
 /**
- * \brief      å°†binæ•°æ®å†™å…¥æ–‡ä»¶
- * \return     void æ— 
+ * \brief      ½«binÊı¾İĞ´ÈëÎÄ¼ş
+ * \return     void ÎŞ
  */
 void write_micro_inst_file()
 {
@@ -301,9 +305,9 @@ void write_micro_inst_file()
 }
 
 /**
- * \brief      å¾—åˆ°å¯„å­˜å™¨ID
- * \param[in]  const char  *reg    å­—ç¬¦ä¸²
- * \return     int å¯„å­˜å™¨ID,enum REG_ID
+ * \brief      µÃµ½¼Ä´æÆ÷ID
+ * \param[in]  const char  *reg    ×Ö·û´®
+ * \return     int ¼Ä´æÆ÷ID,enum REG_ID
  */
 int get_reg_id(const char *reg)
 {
@@ -326,11 +330,11 @@ int get_reg_id(const char *reg)
 }
 
 /**
- * \brief      è®¾ç½®å¾®æŒ‡ä»¤
- * \param[in]  int reg_id   å¯„å­˜å™¨ID,enum REG_ID
- * \param[in]  int rw       è¯»å†™:REG_READ,REG_WRITE
- * \param[in]  int bus      æ€»çº¿:BUS_ADDR,BUS_DATA
- * \return     int 0-æˆåŠŸï¼Œå…¶å®ƒå¤±è´¥
+ * \brief      ÉèÖÃÎ¢Ö¸Áî
+ * \param[in]  int reg_id   ¼Ä´æÆ÷ID,enum REG_ID
+ * \param[in]  int rw       ¶ÁĞ´:REG_READ,REG_WRITE
+ * \param[in]  int bus      ×ÜÏß:BUS_ADDR,BUS_DATA
+ * \return     int 0-³É¹¦£¬ÆäËüÊ§°Ü
  */
 int set_reg_data(int reg_id, int rw, int bus)
 {
@@ -425,7 +429,7 @@ int set_reg_data(int reg_id, int rw, int bus)
             s_mi.mi.rs_rw = rw;
             (BUS_ADDR == bus) ? s_mi.mi.ss_a = 0 : s_mi.mi.ss_d = 0;
             (BUS_ADDR == bus) ? s_mi.mi.rs_a = 0 : s_mi.mi.rs_d = 0;
-        } // æ²¡æœ‰break
+        } // Ã»ÓĞbreak
         case REG_NOT_STACK:
         {
             s_mi.mi.ri_le = rw;
@@ -459,9 +463,9 @@ int set_reg_data(int reg_id, int rw, int bus)
 }
 
 /**
- * \brief      å¤„ç†ä¸‰ç›®å¾®æŒ‡ä»¤,æ ¼å¼:REG=>BUS=>REG
- * \param[in]  const char *ptr[]   å¾®æŒ‡ä»¤å­—ç¬¦ä¸²
- * \return     int 0-æˆåŠŸï¼Œå…¶å®ƒå¤±è´¥
+ * \brief      ´¦ÀíÈıÄ¿Î¢Ö¸Áî,¸ñÊ½:REG=>BUS=>REG
+ * \param[in]  const char *ptr[]   Î¢Ö¸Áî×Ö·û´®
+ * \return     int 0-³É¹¦£¬ÆäËüÊ§°Ü
  */
 int proc_three_item(char *ptr[])
 {
@@ -512,9 +516,9 @@ int proc_three_item(char *ptr[])
 }
 
 /**
- * \brief      å¤„ç†äºŒç›®å¾®æŒ‡ä»¤,æ ¼å¼:BUS=>REG,REG=>BUS,ALU(**)=>RT,RI=>SEL
- * \param[in]  const char *ptr[]   å¾®æŒ‡ä»¤å­—ç¬¦ä¸²
- * \return     int 0-æˆåŠŸï¼Œå…¶å®ƒå¤±è´¥
+ * \brief      ´¦Àí¶şÄ¿Î¢Ö¸Áî,¸ñÊ½:BUS=>REG,REG=>BUS,ALU(**)=>RT,RI=>SEL
+ * \param[in]  const char *ptr[]   Î¢Ö¸Áî×Ö·û´®
+ * \return     int 0-³É¹¦£¬ÆäËüÊ§°Ü
  */
 int proc_two_item(char *ptr[])
 {
@@ -596,12 +600,36 @@ int proc_two_item(char *ptr[])
             s_mi.mi.rt_le  = REG_WRITE;
             break;
         }
-        case ALU_A_SUB_D:
+        case ALU_A_ADD_A:
         {
             s_mi.mi.alu_s0 = 0;
             s_mi.mi.alu_s1 = 0;
             s_mi.mi.alu_s2 = 1;
             s_mi.mi.alu_s3 = 1;
+            s_mi.mi.alu_m  = 0;
+            s_mi.mi.alu_cn = 1;
+            s_mi.mi.rt_oe  = REG_WRITE;
+            s_mi.mi.rt_le  = REG_WRITE;
+            break;
+        }
+        case ALU_A_ADD_D:
+        {
+            s_mi.mi.alu_s0 = 1;
+            s_mi.mi.alu_s1 = 0;
+            s_mi.mi.alu_s2 = 0;
+            s_mi.mi.alu_s3 = 1;
+            s_mi.mi.alu_m  = 0;
+            s_mi.mi.alu_cn = 1;
+            s_mi.mi.rt_oe  = REG_WRITE;
+            s_mi.mi.rt_le  = REG_WRITE;
+            break;
+        }
+        case ALU_A_SUB_D:
+        {
+            s_mi.mi.alu_s0 = 0;
+            s_mi.mi.alu_s1 = 1;
+            s_mi.mi.alu_s2 = 1;
+            s_mi.mi.alu_s3 = 0;
             s_mi.mi.alu_m  = 0;
             s_mi.mi.alu_cn = 0;
             s_mi.mi.rt_oe  = REG_WRITE;
@@ -644,19 +672,19 @@ int proc_two_item(char *ptr[])
 }
 
 /**
- * \brief      å¤„ç†ä¸€ç›®å¾®æŒ‡ä»¤,æ ¼å¼:CHECK-*
- * \param[in]  const char *ptr[]   å¾®æŒ‡ä»¤å­—ç¬¦ä¸²
- * \return     int 0-æˆåŠŸï¼Œå…¶å®ƒå¤±è´¥
+ * \brief      ´¦ÀíÒ»Ä¿Î¢Ö¸Áî,¸ñÊ½:CHECK-*
+ * \param[in]  const char *ptr[]   Î¢Ö¸Áî×Ö·û´®
+ * \return     int 0-³É¹¦£¬ÆäËüÊ§°Ü
  */
 int proc_one_item(char *ptr[])
 {
     if (0 == strcmp(ptr[0], "INT-CLEAN"))
     {
-        s_mi.mi.int_clean = 0; // 0æœ‰æ•ˆ
+        s_mi.mi.int_clean = 0; // 0ÓĞĞ§
     }
     else if (0 == strcmp(ptr[0], "INT-D"))
     {
-        s_mi.mi.int_d = 0; // 0æœ‰æ•ˆ
+        s_mi.mi.int_d = 0; // 0ÓĞĞ§
     }
     else if (0 == strcmp(ptr[0], "SELECT-RI"))
     {
@@ -690,7 +718,7 @@ int proc_one_item(char *ptr[])
     {
         s_mi.mi.check_jle = true;
     }
-    else if (0 == strcmp(ptr[0], "ALU(A-D)")) // CMPæ¯”è¾ƒå‘½ä»¤ä½¿ç”¨
+    else if (0 == strcmp(ptr[0], "ALU(A-D)")) // CMP±È½ÏÃüÁîÊ¹ÓÃ
     {
         s_mi.mi.alu_s0 = 0;
         s_mi.mi.alu_s1 = 1;
@@ -709,9 +737,9 @@ int proc_one_item(char *ptr[])
 }
 
 /**
- * \brief      å¤„ç†å¾®æŒ‡ä»¤
- * \param[in]  char *micro_inst å¾®æŒ‡ä»¤å­—ç¬¦: CS:RP=>ABUS
- * \return     int 0-æˆåŠŸï¼Œå…¶å®ƒå¤±è´¥
+ * \brief      ´¦ÀíÎ¢Ö¸Áî
+ * \param[in]  char *micro_inst Î¢Ö¸Áî×Ö·û: CS:RP=>ABUS
+ * \return     int 0-³É¹¦£¬ÆäËüÊ§°Ü
  */
 int proc_micro_inst(char *micro_inst)
 {
@@ -747,9 +775,9 @@ int proc_micro_inst(char *micro_inst)
 }
 
 /**
- * \brief      å¤„ç†å¾®æŒ‡ä»¤,ä»¥è±†å·ä¸ºç•Œ
- * \param[in]  char *micro_inst_list  å¾®æŒ‡ä»¤å­—ç¬¦ä¸²: CS:RP=>ABUS=>MEM=>RI,RP=>ALU(++)=>TR
- * \return     int 0-æˆåŠŸï¼Œå…¶å®ƒå¤±è´¥
+ * \brief      ´¦ÀíÎ¢Ö¸Áî,ÒÔ¶¹ºÅÎª½ç
+ * \param[in]  char *micro_inst_list  Î¢Ö¸Áî×Ö·û´®: CS:RP=>ABUS=>MEM=>RI,RP=>ALU(++)=>TR
+ * \return     int 0-³É¹¦£¬ÆäËüÊ§°Ü
  */
 int proc_micro_inst_list(char *micro_inst_list)
 {
@@ -778,7 +806,7 @@ int main(int argc, char* argv[])
 
     BasicExcel e;
 
-    if (!e.Load(filename, ios_base::in)) // åªè¯»
+    if (!e.Load(filename, ios_base::in)) // Ö»¶Á
     {
         printf("load %s error\n", filename);
         return -1;
@@ -813,31 +841,31 @@ int main(int argc, char* argv[])
     BasicExcelCell *c1;
     BasicExcelCell *c2;
 
-    // ä»ç¬¬6è¡Œå¼€å§‹
+    // ´ÓµÚ6ĞĞ¿ªÊ¼
     for (size_t r = 5; r < max_row; ++r)
     {
-        c0 = sheet->Cell(r, 0);     // å¾—åˆ°å•å…ƒæ ¼
+        c0 = sheet->Cell(r, 0);     // µÃµ½µ¥Ôª¸ñ
         c1 = sheet->Cell(r, 2);
-        c2 = sheet->Cell(r + 1, 0); // ä¸‹ä¸€æ¡æ•°æ®
+        c2 = sheet->Cell(r + 1, 0); // ÏÂÒ»ÌõÊı¾İ
 
         if (c0->Type() == BasicExcelCell::UNDEFINED)
         {
-            micro_inst_id++;        // åŒä¸€æ¡æŒ‡ä»¤,æ–°çš„å¾®æŒ‡ä»¤
+            micro_inst_id++;        // Í¬Ò»ÌõÖ¸Áî,ĞÂµÄÎ¢Ö¸Áî
         }
         else
         {
-            inst_id++;              // ä¸€æ¡æ–°çš„æŒ‡ä»¤
+            inst_id++;              // Ò»ÌõĞÂµÄÖ¸Áî
             micro_inst_id = 0;
             to_string(c0->GetWString(), c0->GetStringLength(), inst, sizeof(inst));
         }
 
         to_string(c1->GetWString(), c1->GetStringLength(), micro_inst_list, sizeof(micro_inst_list));
 
-        printf("%-15s %-40s", inst, micro_inst_list);
+        printf("%-15s %-41s ", inst, micro_inst_list);
 
-        if (0 == strcmp(inst, "SYSTEM")) // ç³»ç»Ÿä¿ç•™
+        if (0 == strcmp(inst, "ÏµÍ³±£Áô"))
         {
-            addr = 0xFF9 + micro_inst_id;
+            addr = BIN_LEN - max_row + r;
 
             switch (addr)
             {
@@ -864,17 +892,17 @@ int main(int argc, char* argv[])
             next = (c2->Type() != BasicExcelCell::UNDEFINED) ? 0xFF9 : addr + 1;
         }
 
-        // æ¸…ç©ºæ•°æ®
+        // Çå¿ÕÊı¾İ
         clean_micro_inst_data(next);
 
-        // å¾—åˆ°å¾®æŒ‡ä»¤æ•°æ®
+        // µÃµ½Î¢Ö¸ÁîÊı¾İ
         proc_micro_inst_list(micro_inst_list);
 
-        // ä¿å­˜æ•°æ®
+        // ±£´æÊı¾İ
         write_micro_inst_buff(addr);
     }
 
-    // å°†æ•°æ®å†™å…¥æ–‡ä»¶
+    // ½«Êı¾İĞ´ÈëÎÄ¼ş
     write_micro_inst_file();
     return 0;
 }
