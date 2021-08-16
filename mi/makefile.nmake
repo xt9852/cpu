@@ -1,0 +1,156 @@
+#------------------------------------------------------------
+# 此配置由nmake.exe使用
+# MSVC_ARCH_TYPE    架构x64/x64
+# MSVC_PATH_ROOT    MSVC根目录
+# PATH_MSVC_LIB     MSVC库目录
+# PATH_KIT_LIB_UM   KIT的UM库目录
+# PATH_KIT_LIB_UCRT KIT的UCRT库目录
+# FILES_SRC         源文件列表,查询当前目录和子目录的.c,.cpp文件,命令为'dir /s/b *.c *.cpp'
+# FILES_OBJ         由源文件列表生转换而来
+# 以上变量由外部make.bat设置
+#
+# 字符集:GB2312, 编码方案也是:GB2312
+# 字符集:Unicode,编码方案多个:UTF-8,UTF-16(标准方案),UTF-32
+#
+# FILES_OBJ = $(FILES_SRC:.cpp=.obj) # 将.cpp替换成.obj
+# FILES_OBJ = $(FILES_OBJ:.c=.obj)   # 将.c  替换成.obj
+#------------------------------------------------------------
+
+NAME                = mi                    # 程序名称
+EXT                 = exe                   # exe,dll,lib
+DEBUG               = release               # debug,release
+CHARSET             = mbcs                  # mbcs,unicode
+BIN                 = .                     # 生成文件目录
+TMP                 = .\tmp                 # 临时文件目录
+FILE_RC             =                       # 资源描述文件
+FILE_RES            =                       # 资源文件
+                                            # 编译参数,自定义宏/D"macro"
+CFLAGS              = /I".\\BasicExcel"\
+                      /D"_CRT_SECURE_NO_WARNINGS"
+                                            
+LFLAGS              =                       # 链接参数,排除默认库/NODEFAULTLIB:"LIBCMT"
+
+#------------------------------------------------------------
+# 可执行命令
+
+CC                  = cl.exe    # c编译器
+ML                  = ml.exe    # 汇编编译器
+RC                  = rc.exe    # 资源编译器
+LIB                 = lib.exe   # 静态库生成器
+LNK                 = link.exe  # 连接器
+
+#------------------------------------------------------------
+# 设置路径
+
+INCLUDE             = /I".\\" /I"$(PATH_MSVC_INCLUDE)" /I"$(PATH_KIT_INCLUDE_UM)" /I"$(PATH_KIT_INCLUDE_UCRT)" /I"$(PATH_KIT_INCLUDE_SHARED)"
+LIBPATH             = /LIBPATH:"$(PATH_MSVC_LIB)" /LIBPATH:"$(PATH_KIT_LIB_UM)" /LIBPATH:"$(PATH_KIT_LIB_UCRT)"
+
+#------------------------------------------------------------
+# 编译参数
+# /c                    只编译,不链接
+# /Gd                   调用约定:_cdecl
+# /GS                   启用安全检查
+# /W3                   警告等级3
+# /WX-                  将警告视为错误
+# /FC                   使用完整路径
+# /EHsc                 启用C++异常
+# /sdl                  启用SDL检查
+# /Gm-                  停用最小重新生成
+# /nologo               不显示版权信息
+# /permissive-          符合模式
+# /Zc:wchar_t           将wchar_t视为类型
+# /Zc:inline            移除未引用代码和数据
+# /Zc:forScope          for循环范围检查
+# /fp:precise           浮点模型:精度
+# /diagnostics:column   诊断格式:列
+# /errorReport:prompt   错误报告:立即提示
+# /Fo:"$(TMP)/"         输出路径
+# /Fd:"$(TMP)/"         vc***.pdb路径
+# /D "_WINDOWS"
+#-----------------------debug-----
+# /JMC                  支持仅我的代码调试
+# /ZI                   启用“编辑并继续”调试信息
+# /Od                   禁用优化
+# /RTC1                 运行时检查
+#-----------------------release-----
+# /Zi                   启用调试信息
+# /O2                   最大化速度
+# /Oi                   启用内部函数
+# /GL                   启用链接时代码生成
+# /Gy                   分隔链接器函数
+
+# 公共配置
+CFLAGS              = $(CFLAGS) /c /Gd /GS /W3 /WX- /FC /sdl- /EHsc \
+                      /Gm- /nologo /permissive- \
+                      /Zc:wchar_t /Zc:inline /Zc:forScope \
+                      /fp:precise /diagnostics:column /errorReport:prompt \
+                      /Fo:"$(TMP)/" /Fd:"$(TMP)/" /D"_WINDOWS"
+
+# 构建类型:debug,release
+!IF "$(DEBUG)" == "debug"
+CFLAGS              = $(CFLAGS) $(INCLUDE) /D"_DEBUG" /JMC /ZI /Od /RTC1
+!ELSE
+CFLAGS              = $(CFLAGS) $(INCLUDE) /D"NDEBUG" /Zi /O2 /Oi /GL /Gy
+!ENDIF
+
+# 程序架构类型:x64,x86
+!IF "$(MSVC_ARCH_TYPE)" == "x64"
+CFLAGS              = $(CFLAGS) /D"_WIN64" /D"X64"
+!ELSE
+CFLAGS              = $(CFLAGS) /D"_WIN32" /D"WIN32"
+!ENDIF
+
+# 字符集类型:mbcs,unicode
+!IF "$(CHARSET)" == "mbcs"
+CFLAGS              = $(CFLAGS) /D"_MBCS"
+!ELSE
+CFLAGS              = $(CFLAGS) /D"_UNICODE" /D"UNICODE"
+!ENDIF
+
+#------------------------------------------------------------
+# 连接参数
+LFLAGS              = $(LFLAGS) /MANIFEST /NXCOMPAT /ERRORREPORT:PROMPT /TLBID:1 #/NOLOGO
+
+# 构建类型:debug,release
+!IF "$(DEBUG)" == "debug"
+LFLAGS              = $(LFLAGS) $(LIBPATH) /DEBUG /INCREMENTAL
+!ELSE
+LFLAGS              = $(LFLAGS) $(LIBPATH) /INCREMENTAL:NO /OPT:REF /LTCG:incremental /SAFESEH
+!ENDIF
+
+# 目标类型:exe,dll,lib
+!IF "$(EXT)" == "exe"
+OUT                 = "$(TMP)\$(NAME).exe"
+LFLAGS              = $(LFLAGS) /OUT:$(OUT)
+!ELSEIF "$(EXT)" == "dll"
+OUT                 = "$(TMP)\$(NAME).dll"
+LFLAGS              = $(LFLAGS) /OUT:$(OUT) /DLL
+!ELSEIF "$(EXT)" == "lib"
+OUT                 = "$(TMP)\$(NAME).lib"
+LFLAGS              = /OUT:$(OUT)
+LNK                 = $(LIB)
+!ENDIF
+
+# 资源文件
+!IF "$(FILE_RC)" != "" && "$(FILE_RES)" != ""
+FILES_OBJ = $(FILES_OBJ) $(FILE_RES)
+!ENDIF
+
+#------------------------------------------------------------
+
+all : DIR REC OBJ GET MOV
+
+DIR :
+    @if not exist "$(TMP)" mkdir $(TMP)
+
+REC : $(FILE_RC)
+    @if "$(FILE_RC)" NEQ "" if "$(FILE_RES)" NEQ "" ($(RC) /nologo /fo"$(FILE_RES)" $(FILE_RC))
+
+OBJ : $(FILES_SRC)
+    $(CC) $** $(CFLAGS)
+
+GET : $(FILES_OBJ)
+    $(LNK) $** $(LFLAGS)
+
+MOV :
+    @move $(OUT) $(BIN)

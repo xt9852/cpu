@@ -1,0 +1,51 @@
+Proteus的 ARES制板过程
+Proteus的 ARES画的电路板，在我们国家，制板商不能直接识别，所以必需导出制板商能识别的格式，
+为了能实现这个目的，我们还需要一个软件 CAM350 ，这个软件生成的格式，制板商都能识别，
+而且是一个标准
+步骤如下：
+
+1、 用 ARES画完图制完板后，在菜单 “Output” 中选 “CADCAM output”,会出现一个窗口
+①、在folder中，确定你要导出文件的位置
+②、根据需求，选择你要导出的板子哪一层，如 Top copper 、Buttom copper 等，
+    其中Drill层一定要选中，这是钻孔数据。
+③、Gerber format 一定要选成 RS724X。其它都不用动，然后点 “OK” 将文件导出
+
+2、导出的文件是一系列文本文件，你做的板子，所选中每一层都会生成一个文本文件
+        Demo - CADCAM Bottom Copper.TXT
+        Demo - CADCAM Bottom Solder Resist.TXT
+        Demo - CADCAM Drill.TXT
+        Demo - CADCAM READ-ME.TXT     此文件中有重要信息
+        Demo - CADCAM Top Copper.TXT
+        Demo - CADCAM Top Silk Screen.TXT
+        Demo - CADCAM Top SMT Paste Mask.TXT
+以上是以 Demo 为导出文件 生成的结果 他们都是以 .TXT为结尾的文本文件，可以用记事本打开
+
+3、用CAM350 将这些文件导入，转成CAM格式
+
+①、打开任意版本的 CAM350 ，在 菜单“File” 里选 “Import” 然后选“Auto import”
+    此时会出来 一个向导窗口，选择刚才导出时文件的位置(文件夹) 然后选 “finish ”就行了
+
+②、导入结束时，会有一个提示，这个提示是告诉我们，有几个过孔和焊盘的大小 没指定
+    不过，这时你已经能在主窗口里看到你所制的板子的样子了，只是过孔和焊盘大小不对
+
+    过孔和焊盘的信息就在 XXX - CADCAM READ-ME.TXT 这个文件中。这个数据要人工输进去才行
+③、打开 XXX - CADCAM READ-ME.TXT文件 ，找到 NC Drill Setup 这一段
+        这一段下面就会有
+        T01        15th (0-15)
+        T02        60th (0-15)
+        T03        40th (0-15)
+        T04        118.1th (0-15)
+        ...
+        ...
+        等数据 ，每一行代表一个钻孔数据 如 T01  15th , 前者是钻孔序号，后者是钻孔大小，
+        记下这些数据
+
+④、在CAM350菜单 “Tables”里选 “NC Tables tools”
+    这时会出现一个对话窗口, 在窗口的中间部分有 Tools Definitions 的数据显示
+    显示的数据，每行代表一个钻孔的数据
+    行的顺序和 文件XXX - CADCAM READ-ME.TXT文件 NC Drill Setup 段的顺序是对应的
+    依次在 Size Mil 栏中填上对应的 钻孔数据就行了
+
+4、在CAM350中将文件保存（会发现文件很小，比protel的文件小多了）
+    好了，现在就可以把这个文件拿给制板商制板了，告诉他，你的是CAM350格式就行了，
+    如果更可能的话，告诉他你用的 CAM350是多少版本 如，8.5
