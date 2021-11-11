@@ -5,12 +5,10 @@
 #include <BasicExcel.hpp>
 using namespace YExcel;
 
-// 寄存器ID,与REG_NAME对应
-enum REG_ID {
-    REG_READ,
-    REG_WRITE,
-    REG_RI,
-    REG_RF,
+// 器件ID,与DEV_NAME对应
+enum DEV_ID {
+    DEV_READ,
+    DEV_WRITE,
     REG_SC,
     REG_SD,
     REG_SS,
@@ -21,11 +19,18 @@ enum REG_ID {
     REG_RC,
     REG_RD,
     REG_RT,
-    REG_NOT_RT,
-    REG_NOT_STACK,
-    REG_MEM,
+    REG_RT0,
+    REG_RT1,
+    REG_RT_A,
+    REG_RT_D,
+    REG_RI,
+    REG_RF,
+    REG_AH,
+    BUS_ALU,
     BUS_ADDR,
     BUS_DATA,
+    ALU_A,
+    ALU_D,
     ALU_00,
     ALU_FF,
     ALU_A_ADD_ADD,
@@ -33,16 +38,16 @@ enum REG_ID {
     ALU_A_ADD_A,
     ALU_A_ADD_D,
     ALU_A_SUB_D,
-    ADDR_SEL,
-    REG_COUNT
+    DEV_MEM,
+    REG_NOT_SS_RS,
+    REG_ALL,
+    DEV_COUNT
     };
 
-// 寄存器名称,与REG_ID对应
-const char *REG_NAME[] = {
+// 器件名称,与DEV_ID对应
+const char *DEV_NAME[] = {
     "READ",
     "WRITE",
-    "RI",
-    "RF",
     "SC",
     "SD",
     "SS",
@@ -53,11 +58,18 @@ const char *REG_NAME[] = {
     "RC",
     "RD",
     "RT",
-    "NOT-RT",
-    "NOT-STACK",
-    "MEM",
+    "RT0",
+    "RT1",
+    "RT(A)",
+    "RT(D)",
+    "RI",
+    "RF",
+    "AH",
+    "FBUS",
     "ABUS",
     "DBUS",
+    "ALU(A)",
+    "ALU(D)",
     "ALU(00)",
     "ALU(FF)",
     "ALU(A++)",
@@ -65,7 +77,9 @@ const char *REG_NAME[] = {
     "ALU(A+A)",
     "ALU(A+D)",
     "ALU(A-D)",
-    "ADDR-SEL"
+    "MEM",
+    "!STACK",
+    "ALL",
     };
 
 #pragma pack(push)  // 将当前pack设置压栈保存
@@ -75,60 +89,53 @@ typedef struct _mi
 {
     unsigned short next:        12;
 
-    unsigned short select_ri:   1;
-    unsigned short check_int:   1;
-    unsigned short check_je:    1;
-    unsigned short check_jne:   1;
+    unsigned short sc_a:        1;
+    unsigned short sc_d:        1;
+    unsigned short sc_rw:       1;
+
+    unsigned short sd_a:        1;
+    unsigned char  sd_d:        1;
+    unsigned char  sd_rw:       1;
+
+    unsigned char  ss_a:        1;
+    unsigned char  ss_d:        1;
+    unsigned char  ss_rw:       1;
+
+    unsigned char  rp_a:        1;
+    unsigned char  rp_d:        1;
+    unsigned char  rp_rw:       1;
+
+    unsigned char  rs_a:        1;
+    unsigned char  rs_d:        1;
+    unsigned char  rs_rw:       1;
+
+    unsigned char  ra_a:        1;
+    unsigned char  ra_d:        1;
+    unsigned char  ra_rw:       1;
+
+    unsigned char  rb_a:        1;
+    unsigned char  rb_d:        1;
+    unsigned char  rb_rw:       1;
+
+    unsigned char  rc_a:        1;
+    unsigned char  rc_d:        1;
+    unsigned char  rc_rw:       1;
+
+    unsigned char  rd_a:        1;
+    unsigned char  rd_d:        1;
+    unsigned char  rd_rw:       1;
+
+    unsigned char  mem_ce:      1;
+    unsigned char  mem_oe:      1;
+    unsigned char  mem_we:      1;
+
+    unsigned char  check_int:   1;
+    unsigned char  check_je:    1;
+    unsigned char  check_jne:   1;
     unsigned char  check_jb:    1;
     unsigned char  check_jbe:   1;
     unsigned char  check_jl:    1;
     unsigned char  check_jle:   1;
-
-    unsigned char  ri_oe:       1;
-    unsigned char  ri_le:       1;
-
-    unsigned char  rf_a:        1;
-    unsigned char  rf_rw:       1;
-    unsigned char  rf_d:        1;
-
-    unsigned char  sc_a:        1;
-    unsigned char  sc_rw:       1;
-    unsigned char  sc_d:        1;
-
-    unsigned char  sd_a:        1;
-    unsigned char  sd_rw:       1;
-    unsigned char  sd_d:        1;
-
-    unsigned char  ss_a:        1;
-    unsigned char  ss_rw:       1;
-    unsigned char  ss_d:        1;
-
-    unsigned char  rp_a:        1;
-    unsigned char  rp_rw:       1;
-    unsigned char  rp_d:        1;
-
-    unsigned char  rs_a:        1;
-    unsigned char  rs_rw:       1;
-    unsigned char  rs_d:        1;
-
-    unsigned char  ra_a:        1;
-    unsigned char  ra_rw:       1;
-    unsigned char  ra_d:        1;
-
-    unsigned char  rb_a:        1;
-    unsigned char  rb_rw:       1;
-    unsigned char  rb_d:        1;
-
-    unsigned char  rc_a:        1;
-    unsigned char  rc_rw:       1;
-    unsigned char  rc_d:        1;
-
-    unsigned char  rd_a:        1;
-    unsigned char  rd_rw:       1;
-    unsigned char  rd_d:        1;
-
-    unsigned char  rt_oe:       1;
-    unsigned char  rt_le:       1;
 
     unsigned char  alu_s0:      1;
     unsigned char  alu_s1:      1;
@@ -136,13 +143,27 @@ typedef struct _mi
     unsigned char  alu_s3:      1;
     unsigned char  alu_m:       1;
     unsigned char  alu_cn:      1;
+    unsigned char  alu_f:       1;
 
-    unsigned char  mem_ce:      1;
-    unsigned char  mem_oe:      1;
-    unsigned char  mem_we:      1;
+    unsigned char  rt0_a:       1;
+    unsigned char  rt0_d:       1;
+    unsigned char  rt0_rw:      1;
 
-    unsigned char  int_d:       1;
-    unsigned char  int_clean:   1;
+    unsigned char  rt1_a:       1;
+    unsigned char  rt1_d:       1;
+    unsigned char  rt1_rw:      1;
+
+    unsigned char  ri_oe:       1;
+    unsigned char  ri_le:       1;
+
+    unsigned char  rf_oe:       1;
+    unsigned char  rf_le:       1;
+
+    unsigned char  al_oe:       1;
+    unsigned char  al_clr:      1;
+
+    unsigned char  ah_oe:       1;
+
 
 }mi_t, *p_mi;
 
@@ -218,9 +239,6 @@ void clean_micro_inst_data(unsigned short next)
     s_mi.mi.next = next;
 
     // 设置默认值
-    s_mi.mi.ri_oe     = 1;
-    s_mi.mi.rf_a      = 1;
-    s_mi.mi.rf_d      = 1;
     s_mi.mi.sc_a      = 1;
     s_mi.mi.sc_d      = 1;
     s_mi.mi.sd_a      = 1;
@@ -239,12 +257,19 @@ void clean_micro_inst_data(unsigned short next)
     s_mi.mi.rc_d      = 1;
     s_mi.mi.rd_a      = 1;
     s_mi.mi.rd_d      = 1;
-    s_mi.mi.rt_oe     = 1;
     s_mi.mi.mem_ce    = 1;
     s_mi.mi.mem_oe    = 1;
     s_mi.mi.mem_we    = 1;
-    s_mi.mi.int_d     = 1;
-    s_mi.mi.int_clean = 1;
+    s_mi.mi.alu_f     = 1;
+    s_mi.mi.rt0_a     = 1;
+    s_mi.mi.rt0_d     = 1;
+    s_mi.mi.rt1_a     = 1;
+    s_mi.mi.rt1_d     = 1;
+    s_mi.mi.ri_oe     = 1;
+    s_mi.mi.rf_oe     = 1;
+    s_mi.mi.al_oe     = 1;
+    s_mi.mi.al_clr    = 1;
+    s_mi.mi.ah_oe     = 1;
 }
 
 /**
@@ -305,43 +330,143 @@ void write_micro_inst_file()
 }
 
 /**
- * \brief      得到寄存器ID
- * \param[in]  const char  *reg    字符串
+ * \brief      得到器件ID
+ * \param[in]  const char  *dev    字符串
  * \return     int 寄存器ID,enum REG_ID
  */
-int get_reg_id(const char *reg)
+int get_dev_id(const char *dev)
 {
+    if (NULL == dev)
+    {
+        return 0;
+    }
+
     int i;
 
-    for (i = 0; i < REG_COUNT; i++)
+    for (i = 0; i < DEV_COUNT; i++)
     {
-        if (0 == strcmp(reg, REG_NAME[i]))
+        if (0 == strcmp(dev, DEV_NAME[i]))
         {
             return i;
         }
     }
 
-    if (i == REG_COUNT)
-    {
-        printf("get reg:%s id error\n", reg);
-    }
-
-    return REG_COUNT;
+    printf("get dev:%s id error\n", dev);
+    return -1;
 }
 
 /**
- * \brief      设置微指令
- * \param[in]  int reg_id   寄存器ID,enum REG_ID
- * \param[in]  int rw       读写:REG_READ,REG_WRITE
+ * \brief      设置微指令数据
+ * \param[in]  int dev_id   器件ID,enum DEV_ID
+ * \param[in]  int rw       读写:DEV_READ,DEV_WRITE
  * \param[in]  int bus      总线:BUS_ADDR,BUS_DATA
  * \return     int 0-成功，其它失败
  */
-int set_reg_data(int reg_id, int rw, int bus)
+int set_dev_data(int dev_id, int rw, int bus)
 {
-    switch (reg_id)
+    switch (dev_id)
     {
-        case REG_READ:
+        case DEV_READ:
         {
+            break;
+        }
+        case REG_SC:
+        {
+            s_mi.mi.sc_rw = rw;
+            s_mi.mi.sc_a = (BUS_ADDR != bus);
+            s_mi.mi.sc_d = (BUS_DATA != bus);
+            break;
+        }
+        case REG_SD:
+        {
+            s_mi.mi.sd_rw = rw;
+            s_mi.mi.sd_a = (BUS_ADDR != bus);
+            s_mi.mi.sd_d = (BUS_DATA != bus);
+            break;
+        }
+        case REG_SS:
+        {
+            s_mi.mi.ss_rw = rw;
+            s_mi.mi.ss_a = (BUS_ADDR != bus);
+            s_mi.mi.ss_d = (BUS_DATA != bus);
+            break;
+        }
+        case REG_RP:
+        {
+            s_mi.mi.rp_rw = rw;
+            s_mi.mi.rp_a = (BUS_ADDR != bus);
+            s_mi.mi.rp_d = (BUS_DATA != bus);
+            break;
+        }
+        case REG_RS:
+        {
+            s_mi.mi.rs_rw = rw;
+            s_mi.mi.rs_a = (BUS_ADDR != bus);
+            s_mi.mi.rs_d = (BUS_DATA != bus);
+            break;
+        }
+        case REG_RA:
+        {
+            s_mi.mi.ra_rw = rw;
+            s_mi.mi.ra_a = (BUS_ADDR != bus);
+            s_mi.mi.ra_d = (BUS_DATA != bus);
+            break;
+        }
+        case REG_RB:
+        {
+            s_mi.mi.rb_rw = rw;
+            s_mi.mi.rb_a = (BUS_ADDR != bus);
+            s_mi.mi.rb_d = (BUS_DATA != bus);
+            break;
+        }
+        case REG_RC:
+        {
+            s_mi.mi.rc_rw = rw;
+            s_mi.mi.rc_a = (BUS_ADDR != bus);
+            s_mi.mi.rc_d = (BUS_DATA != bus);
+            break;
+        }
+        case REG_RD:
+        {
+            s_mi.mi.rd_rw = rw;
+            s_mi.mi.rd_a = (BUS_ADDR != bus);
+            s_mi.mi.rd_d = (BUS_DATA != bus);
+            break;
+        }
+        case REG_RT_A:
+        {
+            s_mi.mi.rt0_a = 0;
+            s_mi.mi.rt1_a = 0;
+            break;
+        }
+        case REG_RT_D:
+        {
+            s_mi.mi.rt0_d = 0;
+            s_mi.mi.rt1_d = 0;
+            break;
+        }
+        case REG_RT:
+        {
+            s_mi.mi.rt0_rw = rw;
+            s_mi.mi.rt1_rw = rw;
+            s_mi.mi.rt0_a = (BUS_ADDR != bus);
+            s_mi.mi.rt0_d = (BUS_DATA != bus);
+            s_mi.mi.rt1_a = (BUS_ADDR != bus);
+            s_mi.mi.rt1_d = (BUS_DATA != bus);
+            break;
+        }
+        case REG_RT0:
+        {
+            s_mi.mi.rt0_rw = rw;
+            s_mi.mi.rt0_a = (BUS_ADDR != bus);
+            s_mi.mi.rt0_d = (BUS_DATA != bus);
+            break;
+        }
+        case REG_RT1:
+        {
+            s_mi.mi.rt1_rw = rw;
+            s_mi.mi.rt1_a = (BUS_ADDR != bus);
+            s_mi.mi.rt1_d = (BUS_DATA != bus);
             break;
         }
         case REG_RI:
@@ -352,204 +477,37 @@ int set_reg_data(int reg_id, int rw, int bus)
         }
         case REG_RF:
         {
-            s_mi.mi.rf_rw = rw;
-            (BUS_ADDR == bus) ? s_mi.mi.rf_a = 0 : s_mi.mi.rf_d = 0;
-            break;
-        }
-        case REG_SC:
-        {
-            s_mi.mi.sc_rw = rw;
-            (BUS_ADDR == bus) ? s_mi.mi.sc_a = 0 : s_mi.mi.sc_d = 0;
-            break;
-        }
-        case REG_SD:
-        {
-            s_mi.mi.sd_rw = rw;
-            (BUS_ADDR == bus) ? s_mi.mi.sd_a = 0 : s_mi.mi.sd_d = 0;
-            break;
-        }
-        case REG_SS:
-        {
-            s_mi.mi.ss_rw = rw;
-            (BUS_ADDR == bus) ? s_mi.mi.ss_a = 0 : s_mi.mi.ss_d = 0;
-            break;
-        }
-        case REG_RP:
-        {
-            s_mi.mi.rp_rw = rw;
-            (BUS_ADDR == bus) ? s_mi.mi.rp_a = 0 : s_mi.mi.rp_d = 0;
-            break;
-        }
-        case REG_RS:
-        {
-            s_mi.mi.rs_rw = rw;
-            (BUS_ADDR == bus) ? s_mi.mi.rs_a = 0 : s_mi.mi.rs_d = 0;
-            break;
-        }
-        case REG_RA:
-        {
-            s_mi.mi.ra_rw = rw;
-            (BUS_ADDR == bus) ? s_mi.mi.ra_a = 0 : s_mi.mi.ra_d = 0;
-            break;
-        }
-        case REG_RB:
-        {
-            s_mi.mi.rb_rw = rw;
-            (BUS_ADDR == bus) ? s_mi.mi.rb_a = 0 : s_mi.mi.rb_d = 0;
-            break;
-        }
-        case REG_RC:
-        {
-            s_mi.mi.rc_rw = rw;
-            (BUS_ADDR == bus) ? s_mi.mi.rc_a = 0 : s_mi.mi.rc_d = 0;
-            break;
-        }
-        case REG_RD:
-        {
-            s_mi.mi.rd_rw = rw;
-            (BUS_ADDR == bus) ? s_mi.mi.rd_a = 0 : s_mi.mi.rd_d = 0;
-            break;
-        }
-        case REG_RT:
-        {
-            s_mi.mi.rt_oe = rw;
-            s_mi.mi.rt_le = rw;
-            break;
-        }
-        case REG_MEM:
-        {
-            s_mi.mi.mem_ce = 0;
-            s_mi.mi.mem_oe = (REG_WRITE == rw);
-            s_mi.mi.mem_we = (REG_READ == rw);
-            break;
-        }
-        case REG_NOT_RT:
-        {
-            s_mi.mi.ss_rw = rw;
-            s_mi.mi.rs_rw = rw;
-            (BUS_ADDR == bus) ? s_mi.mi.ss_a = 0 : s_mi.mi.ss_d = 0;
-            (BUS_ADDR == bus) ? s_mi.mi.rs_a = 0 : s_mi.mi.rs_d = 0;
-        } // 没有break
-        case REG_NOT_STACK:
-        {
             s_mi.mi.ri_le = rw;
             s_mi.mi.ri_oe = rw;
-            s_mi.mi.rf_rw = rw;
-            s_mi.mi.sc_rw = rw;
-            s_mi.mi.sd_rw = rw;
-            s_mi.mi.rp_rw = rw;
-            s_mi.mi.ra_rw = rw;
-            s_mi.mi.rb_rw = rw;
-            s_mi.mi.rc_rw = rw;
-            s_mi.mi.rd_rw = rw;
-            (BUS_ADDR == bus) ? s_mi.mi.rf_a = 0 : s_mi.mi.rf_d = 0;
-            (BUS_ADDR == bus) ? s_mi.mi.sc_a = 0 : s_mi.mi.sc_d = 0;
-            (BUS_ADDR == bus) ? s_mi.mi.sd_a = 0 : s_mi.mi.sd_d = 0;
-            (BUS_ADDR == bus) ? s_mi.mi.rp_a = 0 : s_mi.mi.rp_d = 0;
-            (BUS_ADDR == bus) ? s_mi.mi.ra_a = 0 : s_mi.mi.ra_d = 0;
-            (BUS_ADDR == bus) ? s_mi.mi.rb_a = 0 : s_mi.mi.rb_d = 0;
-            (BUS_ADDR == bus) ? s_mi.mi.rc_a = 0 : s_mi.mi.rc_d = 0;
-            (BUS_ADDR == bus) ? s_mi.mi.rd_a = 0 : s_mi.mi.rd_d = 0;
             break;
         }
-        default:
+        case DEV_MEM:
         {
-            printf("set_reg_data reg:%s error\n", REG_NAME[reg_id]);
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
-/**
- * \brief      处理三目微指令,格式:REG=>BUS=>REG
- * \param[in]  const char *ptr[]   微指令字符串
- * \return     int 0-成功，其它失败
- */
-int proc_three_item(char *ptr[])
-{
-    int i;
-    int id[4] = { 0 };
-    char *p[16];
-
-    int count = split_string(ptr[0], ":", p);
-
-    if (count > 2)
-    {
-        printf("proc_three_item left:%s error\n", ptr[0]);
-    }
-
-    for (i = 0; i < count; i++)
-    {
-        id[i] = get_reg_id(p[i]);
-    }
-
-    id[2] = get_reg_id(ptr[1]);
-    id[3] = get_reg_id(ptr[2]);
-
-    switch (id[2])
-    {
-        case BUS_ADDR:
-        {
-            set_reg_data(id[0], REG_READ,  BUS_ADDR);
-            set_reg_data(id[1], REG_READ,  BUS_ADDR);
-            set_reg_data(id[3], REG_WRITE, BUS_ADDR);
+            s_mi.mi.mem_ce = 0;
+            s_mi.mi.mem_oe = (DEV_WRITE == rw);
+            s_mi.mi.mem_we = (DEV_READ == rw);
             break;
         }
-        case BUS_DATA:
+        case ALU_A:
         {
-            set_reg_data(id[0], REG_READ,  BUS_DATA);
-            set_reg_data(id[1], REG_READ,  BUS_DATA);
-            set_reg_data(id[3], REG_WRITE, BUS_DATA);
+            s_mi.mi.alu_s0 = 1;
+            s_mi.mi.alu_s1 = 1;
+            s_mi.mi.alu_s2 = 1;
+            s_mi.mi.alu_s3 = 1;
+            s_mi.mi.alu_m  = 1;
+            s_mi.mi.alu_cn = 1;
+            s_mi.mi.alu_f  = (BUS_ALU != bus);
             break;
         }
-        default:
+        case ALU_D:
         {
-            printf("proc_three_item left:%s midd:%s right:%s error\n",
-                    ptr[0], ptr[1], ptr[2]);
-            break;
-        }
-    }
-
-    return 0;
-}
-
-/**
- * \brief      处理二目微指令,格式:BUS=>REG,REG=>BUS,ALU(**)=>RT,RI=>SEL
- * \param[in]  const char *ptr[]   微指令字符串
- * \return     int 0-成功，其它失败
- */
-int proc_two_item(char *ptr[])
-{
-    int i;
-    int id[4] = { 0 };
-    char *p[16];
-
-    int count = split_string(ptr[0], ":", p);
-
-    if (count > 2)
-    {
-        printf("proc_two_item left:%s error\n", ptr[0]);
-    }
-
-    for (i = 0; i < count; i++)
-    {
-        id[i] = get_reg_id(p[i]);
-    }
-
-    id[2] = get_reg_id(ptr[1]);
-
-    switch (id[0])
-    {
-        case BUS_ADDR:
-        {
-            set_reg_data(id[2], REG_WRITE, BUS_ADDR);
-            break;
-        }
-        case BUS_DATA:
-        {
-            set_reg_data(id[2], REG_WRITE, BUS_DATA);
+            s_mi.mi.alu_s0 = 0;
+            s_mi.mi.alu_s1 = 1;
+            s_mi.mi.alu_s2 = 0;
+            s_mi.mi.alu_s3 = 1;
+            s_mi.mi.alu_m  = 1;
+            s_mi.mi.alu_cn = 1;
+            s_mi.mi.alu_f  = (BUS_ALU != bus);
             break;
         }
         case ALU_00:
@@ -560,8 +518,7 @@ int proc_two_item(char *ptr[])
             s_mi.mi.alu_s3 = 0;
             s_mi.mi.alu_m  = 1;
             s_mi.mi.alu_cn = 1;
-            s_mi.mi.rt_oe  = REG_WRITE;
-            s_mi.mi.rt_le  = REG_WRITE;
+            s_mi.mi.alu_f  = (BUS_ALU != bus);
             break;
         }
         case ALU_FF:
@@ -572,8 +529,7 @@ int proc_two_item(char *ptr[])
             s_mi.mi.alu_s3 = 1;
             s_mi.mi.alu_m  = 1;
             s_mi.mi.alu_cn = 1;
-            s_mi.mi.rt_oe  = REG_WRITE;
-            s_mi.mi.rt_le  = REG_WRITE;
+            s_mi.mi.alu_f  = (BUS_ALU != bus);
             break;
         }
         case ALU_A_ADD_ADD:
@@ -584,8 +540,7 @@ int proc_two_item(char *ptr[])
             s_mi.mi.alu_s3 = 0;
             s_mi.mi.alu_m  = 0;
             s_mi.mi.alu_cn = 0;
-            s_mi.mi.rt_oe  = REG_WRITE;
-            s_mi.mi.rt_le  = REG_WRITE;
+            s_mi.mi.alu_f  = (BUS_ALU != bus);
             break;
         }
         case ALU_A_SUB_SUB:
@@ -596,8 +551,7 @@ int proc_two_item(char *ptr[])
             s_mi.mi.alu_s3 = 1;
             s_mi.mi.alu_m  = 0;
             s_mi.mi.alu_cn = 1;
-            s_mi.mi.rt_oe  = REG_WRITE;
-            s_mi.mi.rt_le  = REG_WRITE;
+            s_mi.mi.alu_f  = (BUS_ALU != bus);
             break;
         }
         case ALU_A_ADD_A:
@@ -608,8 +562,7 @@ int proc_two_item(char *ptr[])
             s_mi.mi.alu_s3 = 1;
             s_mi.mi.alu_m  = 0;
             s_mi.mi.alu_cn = 1;
-            s_mi.mi.rt_oe  = REG_WRITE;
-            s_mi.mi.rt_le  = REG_WRITE;
+            s_mi.mi.alu_f  = (BUS_ALU != bus);
             break;
         }
         case ALU_A_ADD_D:
@@ -620,8 +573,7 @@ int proc_two_item(char *ptr[])
             s_mi.mi.alu_s3 = 1;
             s_mi.mi.alu_m  = 0;
             s_mi.mi.alu_cn = 1;
-            s_mi.mi.rt_oe  = REG_WRITE;
-            s_mi.mi.rt_le  = REG_WRITE;
+            s_mi.mi.alu_f  = (BUS_ALU != bus);
             break;
         }
         case ALU_A_SUB_D:
@@ -632,39 +584,42 @@ int proc_two_item(char *ptr[])
             s_mi.mi.alu_s3 = 0;
             s_mi.mi.alu_m  = 0;
             s_mi.mi.alu_cn = 0;
-            s_mi.mi.rt_oe  = REG_WRITE;
-            s_mi.mi.rt_le  = REG_WRITE;
+            s_mi.mi.alu_f  = (BUS_ALU != bus);
+            break;
+        }
+        case REG_NOT_SS_RS:
+        {
+            s_mi.mi.ri_le = rw;
+            s_mi.mi.ri_oe = rw;
+            s_mi.mi.rf_oe = rw;
+            s_mi.mi.rf_le = rw;
+            s_mi.mi.sc_rw = rw;
+            s_mi.mi.sd_rw = rw;
+            s_mi.mi.rp_rw = rw;
+            s_mi.mi.ra_rw = rw;
+            s_mi.mi.rb_rw = rw;
+            s_mi.mi.rc_rw = rw;
+            s_mi.mi.rd_rw = rw;
+            s_mi.mi.sc_a = (BUS_ADDR != bus);
+            s_mi.mi.sc_d = (BUS_DATA != bus);
+            s_mi.mi.sd_a = (BUS_ADDR != bus);
+            s_mi.mi.sd_d = (BUS_DATA != bus);
+            s_mi.mi.rp_a = (BUS_ADDR != bus);
+            s_mi.mi.rp_d = (BUS_DATA != bus);
+            s_mi.mi.ra_a = (BUS_ADDR != bus);
+            s_mi.mi.ra_d = (BUS_DATA != bus);
+            s_mi.mi.rb_a = (BUS_ADDR != bus);
+            s_mi.mi.rb_d = (BUS_DATA != bus);
+            s_mi.mi.rc_a = (BUS_ADDR != bus);
+            s_mi.mi.rc_d = (BUS_DATA != bus);
+            s_mi.mi.rd_a = (BUS_ADDR != bus);
+            s_mi.mi.rd_d = (BUS_DATA != bus);
             break;
         }
         default:
         {
-            switch (id[2])
-            {
-                case BUS_ADDR:
-                {
-                    set_reg_data(id[0], REG_READ, BUS_ADDR);
-                    set_reg_data(id[1], REG_READ, BUS_ADDR);
-                    break;
-                }
-                case BUS_DATA:
-                {
-                    set_reg_data(id[0], REG_READ, BUS_DATA);
-                    set_reg_data(id[1], REG_READ, BUS_DATA);
-                    break;
-                }
-                case ADDR_SEL:
-                {
-                    set_reg_data(id[0], REG_READ, 0);
-                    break;
-                }
-                default:
-                {
-                    printf("proc_two_item left:%s right:%s error\n", ptr[0], ptr[1]);
-                    break;
-                }
-            }
-
-            break;
+            printf("set dev:%d data error\n", dev_id);
+            return -1;
         }
     }
 
@@ -672,53 +627,153 @@ int proc_two_item(char *ptr[])
 }
 
 /**
- * \brief      处理一目微指令,格式:CHECK-*
- * \param[in]  const char *ptr[]   微指令字符串
+ * \brief      处理三目微指令,格式:REG=>BUS=>REG
+ * \param[in]  const char *item[]   微指令字符串
  * \return     int 0-成功，其它失败
  */
-int proc_one_item(char *ptr[])
+int proc_three_item(char *item[])
 {
-    if (0 == strcmp(ptr[0], "INT-CLEAN"))
+    int id[5] = { 0 };
+    char *p[4] = { 0 };
+
+    id[2] = get_dev_id(item[1]);
+
+    split_string(item[0], ":", p);
+    id[0] = get_dev_id(p[0]);
+    id[1] = get_dev_id(p[1]);
+
+    split_string(item[2], ":", p);
+    id[3] = get_dev_id(p[0]);
+    id[4] = get_dev_id(p[1]);
+
+    switch (id[2])
     {
-        s_mi.mi.int_clean = 0; // 0有效
+        case BUS_ALU:
+        {
+            set_dev_data(id[0], DEV_READ,  BUS_ALU);
+            set_dev_data(id[3], DEV_WRITE, BUS_ALU);
+            return 0;
+        }
+        case BUS_ADDR:
+        {
+            set_dev_data(id[0], DEV_READ,  BUS_ADDR);
+            set_dev_data(id[1], DEV_READ,  BUS_ADDR);
+            set_dev_data(id[3], DEV_WRITE, BUS_ADDR);
+            set_dev_data(id[4], DEV_WRITE, BUS_ADDR);
+            return 0;
+        }
+        case BUS_DATA:
+        {
+            set_dev_data(id[0], DEV_READ,  BUS_DATA);
+            set_dev_data(id[1], DEV_READ,  BUS_DATA);
+            set_dev_data(id[3], DEV_WRITE, BUS_DATA);
+            set_dev_data(id[4], DEV_WRITE, BUS_DATA);
+            return 0;
+        }
     }
-    else if (0 == strcmp(ptr[0], "INT-D"))
+
+    printf("l:%s m:%s r:%s error\n", item[0], item[1], item[2]);
+    return -1;
+}
+
+/**
+ * \brief      处理二目微指令,格式:BUS=>REG,REG=>BUS
+ * \param[in]  const char *item[]   微指令字符串
+ * \return     int 0-成功，其它失败
+ */
+int proc_two_item(char *item[])
+{
+    int id[4] = { 0 };
+    char *p[4] = { 0 };
+
+    split_string(item[0], ":", p);
+    id[0] = get_dev_id(p[0]);
+    id[1] = get_dev_id(p[1]);
+
+    split_string(item[1], ":", p);
+    id[2] = get_dev_id(p[0]);
+    id[3] = get_dev_id(p[1]);
+
+    // BUS=>REG
+    switch (id[0])
     {
-        s_mi.mi.int_d = 0; // 0有效
+        case BUS_ADDR:
+        case BUS_DATA:
+        {
+            set_dev_data(id[2], DEV_WRITE, id[0]);
+            set_dev_data(id[3], DEV_WRITE, id[0]);
+            return 0;
+        }
     }
-    else if (0 == strcmp(ptr[0], "SELECT-RI"))
+
+    // REG=>BUS
+    switch (id[2])
     {
-        s_mi.mi.select_ri = true;
+        case BUS_ADDR:
+        case BUS_DATA:
+        {
+            set_dev_data(id[0], DEV_READ, id[2]);
+            set_dev_data(id[1], DEV_READ, id[2]);
+            return 0;
+        }
     }
-    else if (0 == strcmp(ptr[0], "CHECK-INT"))
+
+    printf("l:%s r:%s error\n", item[0], item[1]);
+    return -1;
+}
+
+/**
+ * \brief      处理一目微指令,格式:CHECK-*,AH-OUT,IR-OUT,INT-OUT,INT-CLR,ALU(A-D)
+ * \param[in]  const char *item[]   微指令字符串
+ * \return     int 0-成功，其它失败
+ */
+int proc_one_item(char *item[])
+{
+    if (0 == strcmp(item[0], "CHECK-INT"))
     {
         s_mi.mi.check_int = true;
     }
-    else if (0 == strcmp(ptr[0], "CHECK-A==B"))
+    else if (0 == strcmp(item[0], "CHECK-A==B"))
     {
         s_mi.mi.check_je = true;
     }
-    else if (0 == strcmp(ptr[0], "CHECK-A!=B"))
+    else if (0 == strcmp(item[0], "CHECK-A!=B"))
     {
         s_mi.mi.check_jne = true;
     }
-    else if (0 == strcmp(ptr[0], "CHECK-A>B"))
+    else if (0 == strcmp(item[0], "CHECK-A>B"))
     {
          s_mi.mi.check_jb = true;
     }
-    else if (0 == strcmp(ptr[0], "CHECK-A>=B"))
+    else if (0 == strcmp(item[0], "CHECK-A>=B"))
     {
         s_mi.mi.check_jbe = true;
     }
-    else if (0 == strcmp(ptr[0], "CHECK-A<B"))
+    else if (0 == strcmp(item[0], "CHECK-A<B"))
     {
         s_mi.mi.check_jl = true;
     }
-    else if (0 == strcmp(ptr[0], "CHECK-A<=B"))
+    else if (0 == strcmp(item[0], "CHECK-A<=B"))
     {
         s_mi.mi.check_jle = true;
     }
-    else if (0 == strcmp(ptr[0], "ALU(A-D)")) // CMP比较命令使用
+    else if (0 == strcmp(item[0], "RI-OUT"))
+    {
+        s_mi.mi.ri_oe = 0;
+    }
+    else if (0 == strcmp(item[0], "AH-OUT"))
+    {
+        s_mi.mi.ah_oe = 0;
+    }
+    else if (0 == strcmp(item[0], "AL-OUT"))
+    {
+        s_mi.mi.al_oe = 0;
+    }
+    else if (0 == strcmp(item[0], "AL-CLR"))
+    {
+        s_mi.mi.al_clr = 0;
+    }
+    else if (0 == strcmp(item[0], "ALU(A-D)")) // CMP比较命令使用
     {
         s_mi.mi.alu_s0 = 0;
         s_mi.mi.alu_s1 = 1;
@@ -726,10 +781,11 @@ int proc_one_item(char *ptr[])
         s_mi.mi.alu_s3 = 0;
         s_mi.mi.alu_m  = 0;
         s_mi.mi.alu_cn = 0;
+        s_mi.mi.ah_oe  = 0;
     }
     else
     {
-        printf("proc_one_item %s error\n", ptr[0]);
+        printf("l:%s error\n", item[0]);
         return -1;
     }
 
@@ -743,58 +799,51 @@ int proc_one_item(char *ptr[])
  */
 int proc_micro_inst(char *micro_inst)
 {
-    char *ptr[16];
+    char *item[16];
 
-    int count = split_string(micro_inst, "=>", ptr);
+    int count = split_string(micro_inst, "=>", item);
 
     switch (count)
     {
         case 1:
         {
-            proc_one_item(ptr);
-            break;
+            return proc_one_item(item);
         }
         case 2:
         {
-            proc_two_item(ptr);
-            break;
+            return proc_two_item(item);
         }
         case 3:
         {
-            proc_three_item(ptr);
-            break;
-        }
-        default:
-        {
-            printf("micro inst count:%d error\n", count);
-            break;
+            return proc_three_item(item);
         }
     }
 
-    return 0;
+    printf("micro inst count:%d error\n", count);
+    return -1;
 }
 
 /**
  * \brief      处理微指令,以豆号为界
- * \param[in]  char *micro_inst_list  微指令字符串: CS:RP=>ABUS=>MEM=>RI,RP=>ALU(++)=>TR
+ * \param[in]  char *micro_inst_list  微指令字符串: CS:RP=>ABUS,MEM=>RI,RP=>ALU(++)=>TR
  * \return     int 0-成功，其它失败
  */
 int proc_micro_inst_list(char *micro_inst_list)
 {
     int i;
     int count;
-    char *ptr[16];
+    char *micro_inst[16];
 
     if (0 == strcmp(micro_inst_list, ""))
     {
         return 0;
     }
 
-    count = split_string(micro_inst_list, ",", ptr);
+    count = split_string(micro_inst_list, ",", micro_inst);
 
     for (i = 0; i < count; i++)
     {
-        proc_micro_inst(ptr[i]);
+        proc_micro_inst(micro_inst[i]);
     }
 
     return 0;
@@ -841,11 +890,10 @@ int main(int argc, char* argv[])
     BasicExcelCell *c1;
     BasicExcelCell *c2;
 
-    // 从第6行开始
-    for (size_t r = 5; r < max_row; ++r)
+    for (size_t r = 4; r < max_row; ++r)
     {
-        c0 = sheet->Cell(r, 0);     // 得到单元格
-        c1 = sheet->Cell(r, 2);
+        c0 = sheet->Cell(r,     0); // 得到单元格
+        c1 = sheet->Cell(r,     1);
         c2 = sheet->Cell(r + 1, 0); // 下一条数据
 
         if (c0->Type() == BasicExcelCell::UNDEFINED)
@@ -861,35 +909,36 @@ int main(int argc, char* argv[])
 
         to_string(c1->GetWString(), c1->GetStringLength(), micro_inst_list, sizeof(micro_inst_list));
 
-        printf("%-15s %-41s ", inst, micro_inst_list);
+        printf("%-15s %-52s", inst, micro_inst_list);
 
         if (0 == strcmp(inst, "系统保留"))
         {
             addr = BIN_LEN - max_row + r;
-
-            switch (addr)
-            {
-                case 0xFFE:
-                {
-                    next = 0xFFA;
-                    break;
-                }
-                case 0xFFF:
-                {
-                    next = 0xFFC;
-                    break;
-                }
-                default:
-                {
-                    next = addr + 1;
-                    break;
-                }
-            }
+            next = addr + 1;
         }
         else
         {
             addr = inst_id * 16 + micro_inst_id;
-            next = (c2->Type() != BasicExcelCell::UNDEFINED) ? 0xFF9 : addr + 1;
+            next = (c2->Type() != BasicExcelCell::UNDEFINED) ? 0xFFC : addr + 1;
+        }
+
+        switch (addr)
+        {
+            case 0x123:         // CALL
+            {
+                next = 0x010;   // JMP
+                break;
+            }
+            case 0xFFB:         // 中断
+            {
+                next = 0x010;   // JMP
+                break;
+            }
+            case 0xFFF:         // 清寄存器
+            {
+                next = 0xFFD;   // 取指
+                break;
+            }
         }
 
         // 清空数据
