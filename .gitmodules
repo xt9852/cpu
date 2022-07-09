@@ -1,3 +1,0 @@
-[submodule "mi/makefile.nmake"]
-	path = mi/makefile.nmake
-	url = https://github.com/xt9852/makefile.nmake.git
